@@ -6,23 +6,26 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from 'react-native-toast-notifications';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout(): React.ReactElement {
   const { checkAuth, isCheckingAuth } = useAuthStore();
 
   useEffect(() => {
-    // Check authentication status on app launch
-    checkAuth();
-  }, [checkAuth]);
-
-  useEffect(() => {
-    // Hide splash screen once auth check is complete
-    if (!isCheckingAuth) {
-      SplashScreen.hideAsync();
+    async function prepareApp() {
+      try {
+        await SplashScreen.preventAutoHideAsync(); // wait until runtime ready
+        await checkAuth(); // run your auth check
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // hide splash screen once auth check is done
+        if (!isCheckingAuth) {
+          await SplashScreen.hideAsync();
+        }
+      }
     }
-  }, [isCheckingAuth]);
+
+    prepareApp();
+  }, [checkAuth, isCheckingAuth]);
 
   return (
     <SafeAreaProvider>

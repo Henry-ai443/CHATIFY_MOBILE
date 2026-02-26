@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { User } from '../../types';
+import { User } from '../types/index';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 interface ChatItemProps {
