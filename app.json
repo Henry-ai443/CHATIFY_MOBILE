@@ -3,39 +3,25 @@
     "name": "Nova-Pulse",
     "slug": "chatify-app",
     "version": "1.0.0",
-
-    "scheme": "novapulse",
-
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
-
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
-
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.chatify.app"
-    },
-
     "android": {
       "package": "com.chatify.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": true
+      "label": "Nova-Pulse"
     },
-
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "ios": {
+      "bundleIdentifier": "com.chatify.app"
     },
-
-    "plugins": ["expo-router"]
+    "extra": {
+      "eas": {
+        "projectId": "402e390f-be44-41aa-89d9-834f53199b09"
+      }
+    }
   }
 }
