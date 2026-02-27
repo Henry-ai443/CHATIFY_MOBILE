@@ -56,13 +56,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   getAllContacts: async () => {
     try {
       set({ isUsersLoading: true });
-      console.log('[Chat] Fetching all contacts...');
       const res = await axiosInstance.get<ContactsResponse>('/messages/contacts/');
       set({ allContacts: res.data.filteredUsers });
-      console.log('[Chat] Loaded', res.data.filteredUsers.length, 'contacts');
-    } catch (error) {
-      console.error('[Chat] Error loading contacts:', error);
-      throw error;
+    } catch (error: any) {
+      const message = error.userMessage || 'Failed to load contacts.';
+      throw new Error(message);
     } finally {
       set({ isUsersLoading: false });
     }
@@ -71,13 +69,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   getMyChatPartners: async () => {
     set({ isUsersLoading: true });
     try {
-      console.log('[Chat] Fetching chat partners...');
       const res = await axiosInstance.get<ChatsResponse>('/messages/chats');
       set({ chats: res.data });
-      console.log('[Chat] Loaded', res.data.length, 'chat partners');
-    } catch (error) {
-      console.error('[Chat] Error loading chat partners:', error);
-      throw error;
+    } catch (error: any) {
+      const message = error.userMessage || 'Failed to load chat partners.';
+      throw new Error(message);
     } finally {
       set({ isUsersLoading: false });
     }
@@ -86,13 +82,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   getMessages: async (userId: string) => {
     try {
       set({ isMessagesLoading: true });
-      console.log('[Chat] Fetching messages for user:', userId);
       const res = await axiosInstance.get<MessagesResponse>(`/messages/${userId}`);
       set({ messages: res.data });
-      console.log('[Chat] Loaded', res.data.length, 'messages');
-    } catch (error) {
-      console.error('[Chat] Error loading messages:', error);
-      throw error;
+    } catch (error: any) {
+      const message = error.userMessage || 'Failed to load messages.';
+      throw new Error(message);
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -101,7 +95,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   sendMessage: async (receiverId: string, text: string, image?: string) => {
     try {
       set({ isSendingMessage: true });
-      console.log('[Chat] Sending message to:', receiverId);
 
       const formData = { text };
       if (image) {
@@ -121,11 +114,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ...res.data,
         receiverId,
       });
-
-      console.log('[Chat] Message sent successfully');
-    } catch (error) {
-      console.error('[Chat] Error sending message:', error);
-      throw error;
+    } catch (error: any) {
+      const message = error.userMessage || 'Failed to send message.';
+      throw new Error(message);
     } finally {
       set({ isSendingMessage: false });
     }
@@ -136,11 +127,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   initializeSocket: (userId: string) => {
-    console.log('[Chat] Initializing socket listeners...');
-
     // Listen for user status changes
     onUserStatusChanged((data) => {
-      console.log('[Socket] User status changed:', data.userId, data.status);
       set((state) => {
         const newOnlineUsers = new Set(state.onlineUsers);
         if (data.status === 'online') {
@@ -155,7 +143,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     // Listen for incoming messages
     onReceiveMessage((message: Message) => {
       const { selectedUser, isSendingMessage } = get();
-      console.log('[Socket] Received message from:', message.senderId);
 
       if (
         selectedUser &&
@@ -182,7 +169,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // Listen for typing indicators
     onUserTyping((data) => {
-      console.log('[Socket] User typing:', data.senderId);
       set((state) => {
         const newTypingUsers = new Set(state.typingUsers);
         newTypingUsers.add(data.senderId);
@@ -192,7 +178,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // Listen for stopped typing
     onUserStoppedTyping((data) => {
-      console.log('[Socket] User stopped typing:', data.senderId);
       set((state) => {
         const newTypingUsers = new Set(state.typingUsers);
         newTypingUsers.delete(data.senderId);
@@ -202,7 +187,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   cleanupSocket: () => {
-    console.log('[Chat] Cleaning up socket listeners...');
     removeAllSocketListeners();
   },
 }));

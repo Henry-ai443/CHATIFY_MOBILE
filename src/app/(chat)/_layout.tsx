@@ -1,48 +1,66 @@
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Redirect } from 'expo-router';
-import { initSocket, emitUserOnline } from '../../services/socket';
-import { useChatStore } from '../../store/useChatStore';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+
+import { useAuthStore } from '../../store/useAuthStore';
+import { useChatStore } from '../../store/useChatStore';
 import { useNotifications } from '../../lib/notifications';
+import { initSocket, emitUserOnline } from '../../services/socket';
+
 import ChatHome from './index';
+import ChatDetail from './[chatId]';
 import ProfileScreen from './profile';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+/* -------------------- Chat Stack -------------------- */
+
+function ChatStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="chatHome" component={ChatHome} />
+      <Stack.Screen name="chatDetail" component={ChatDetail} />
+    </Stack.Navigator>
+  );
+}
+
+/* -------------------- Chat Layout -------------------- */
 
 export default function ChatLayout(): React.ReactElement {
   const { authUser, logout } = useAuthStore();
   const { initializeSocket } = useChatStore();
   const { showError } = useNotifications();
 
-  // Redirect to login if not authenticated
-  if (!authUser) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
+  /* ---------- Auth Guard (SIDE EFFECT, NOT RENDER LOGIC) ---------- */
   useEffect(() => {
-    // Initialize Socket.IO connection
-    const socket = initSocket();
+    if (!authUser) {
+      router.replace('/(auth)/login');
+    }
+  }, [authUser]);
+
+  /* ---------- Socket Initialization ---------- */
+  useEffect(() => {
+    if (!authUser) return;
+
+    initSocket();
     emitUserOnline(authUser._id);
-
-    // Setup socket listeners
     initializeSocket(authUser._id);
+  }, [authUser, initializeSocket]);
 
-    // Cleanup on unmount
-    return () => {
-      // Note: We keep socket connected for background messaging
-    };
-  }, [authUser._id, initializeSocket]);
-
+  /* ---------- Logout ---------- */
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error) {
+      // navigation handled by auth effect
+    } catch {
       showError('Logout failed');
     }
   };
 
+  /* ---------- Always Render JSX ---------- */
   return (
     <Tab.Navigator
       screenOptions={{
@@ -59,8 +77,8 @@ export default function ChatLayout(): React.ReactElement {
       }}
     >
       <Tab.Screen
-        name="index"
-        component={ChatHome}
+        name="chats"
+        component={ChatStack}
         options={{
           title: 'Chats',
           tabBarIcon: ({ color, size }) => (
@@ -68,6 +86,7 @@ export default function ChatLayout(): React.ReactElement {
           ),
         }}
       />
+
       <Tab.Screen
         name="profile"
         component={ProfileScreen}

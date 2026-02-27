@@ -1,36 +1,41 @@
 import { useToast } from 'react-native-toast-notifications';
 
+interface ToastOptions {
+  message: string;
+  type?: 'success' | 'danger' | 'normal';
+  duration?: number;
+}
+
 /**
  * Hook to use toast notifications
  */
 export const useNotifications = () => {
   const toast = useToast();
 
-  const showSuccess = (message: string) => {
+  // Default options for all toasts
+  const defaultOptions = {
+    placement: 'center' as const,
+    animationType: 'zoom' as const,
+  };
+
+  const showToast = ({ message, type = 'normal', duration }: ToastOptions) => {
     toast.show(message, {
-      type: 'success',
-      placement: 'top',
-      duration: 2000,
-      animationType: 'slide-in',
+      ...defaultOptions,
+      type,
+      duration,
     });
   };
 
-  const showError = (message: string) => {
-    toast.show(message, {
-      type: 'danger',
-      placement: 'top',
-      duration: 3000,
-      animationType: 'slide-in',
-    });
+  const showSuccess = (message: string, duration = 2000) => {
+    showToast({ message, type: 'success', duration });
   };
 
-  const showInfo = (message: string) => {
-    toast.show(message, {
-      type: 'normal',
-      placement: 'top',
-      duration: 2000,
-      animationType: 'slide-in',
-    });
+  const showError = (message: string, duration = 3000) => {
+    showToast({ message, type: 'danger', duration });
+  };
+
+  const showInfo = (message: string, duration = 2000) => {
+    showToast({ message, type: 'normal', duration });
   };
 
   return { showSuccess, showError, showInfo };

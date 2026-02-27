@@ -10,22 +10,30 @@ export default function RootLayout(): React.ReactElement {
   const { checkAuth, isCheckingAuth } = useAuthStore();
 
   useEffect(() => {
+    let isMounted = true;
+
     async function prepareApp() {
       try {
         await SplashScreen.preventAutoHideAsync(); // wait until runtime ready
-        await checkAuth(); // run your auth check
+        if (isMounted) {
+          await checkAuth(); // run your auth check
+        }
       } catch (e) {
-        console.warn(e);
+        // Handle error silently
       } finally {
         // hide splash screen once auth check is done
-        if (!isCheckingAuth) {
+        if (isMounted) {
           await SplashScreen.hideAsync();
         }
       }
     }
 
     prepareApp();
-  }, [checkAuth, isCheckingAuth]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <SafeAreaProvider>
@@ -34,7 +42,7 @@ export default function RootLayout(): React.ReactElement {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0f172a' },
+            contentStyle: { backgroundColor: '#0f172a', flex: 1 },
             animationEnabled: true,
           }}
         >

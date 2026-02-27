@@ -4,10 +4,11 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/useAuthStore';
 import { router } from 'expo-router';
 import { useNotifications } from '../../lib/notifications';
@@ -16,8 +17,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 export default function ProfileScreen(): React.ReactElement {
   const { authUser, logout, updateProfile, isUpdatingProfile } = useAuthStore();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { showError, showSuccess } = useNotifications();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handlePickImage = async () => {
     try {
@@ -57,7 +58,7 @@ export default function ProfileScreen(): React.ReactElement {
 
   if (!authUser) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#dde0e7', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: '#94a3b8' }}>Loading profile...</Text>
       </SafeAreaView>
     );
@@ -67,7 +68,8 @@ export default function ProfileScreen(): React.ReactElement {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 20, paddingTop: 10 }}
+        scrollEnabled={true}
       >
         {/* Header */}
         <Text

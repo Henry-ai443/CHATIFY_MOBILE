@@ -1,21 +1,26 @@
 import { create } from 'zustand';
 import { axiosInstance } from '../services/api';
 import { User, AuthResponse } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+
+interface ToastFunctions {
+  showSuccess?: (msg: string) => void;
+  showError?: (msg: string) => void;
+}
 
 interface AuthStore {
-  // State
   authUser: User | null;
   isCheckingAuth: boolean;
   isSigningUp: boolean;
   isLoggingIn: boolean;
   isUpdatingProfile: boolean;
 
-  // Actions
-  checkAuth: () => Promise<void>;
-  signup: (data: { fullName: string; email: string; password: string }) => Promise<void>;
-  login: (data: { email: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  updateProfile: (profilePic: string) => Promise<void>;
+  checkAuth: (toasts?: ToastFunctions) => Promise<void>;
+  signup: (data: { fullName: string; email: string; password: string }, toasts?: ToastFunctions) => Promise<void>;
+  login: (data: { email: string; password: string }, toasts?: ToastFunctions) => Promise<void>;
+  logout: (toasts?: ToastFunctions) => Promise<void>;
+  updateProfile: (profilePic: string, toasts?: ToastFunctions) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -25,68 +30,64 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isLoggingIn: false,
   isUpdatingProfile: false,
 
-  checkAuth: async () => {
+  checkAuth: async (toasts) => {
+    set({ isCheckingAuth: true });
     try {
-      console.log('[Auth] Checking authentication...');
       const res = await axiosInstance.get<AuthResponse>('/auth/check');
       set({ authUser: res.data as User });
-      console.log('[Auth] User authenticated:', res.data.fullName);
-    } catch (error) {
-      console.log('[Auth] Not authenticated:', error);
+    } catch (error: any) {
       set({ authUser: null });
+      toasts?.showError?.(error.userMessage || 'Not authenticated');
     } finally {
       set({ isCheckingAuth: false });
     }
   },
 
-  signup: async (data) => {
+  signup: async (data, toasts) => {
     set({ isSigningUp: true });
     try {
-      console.log('[Auth] Signing up with email:', data.email);
       const res = await axiosInstance.post<AuthResponse>('/auth/signup', data);
       set({ authUser: res.data as User });
-      console.log('[Auth] Signup successful');
+      toasts?.showSuccess?.('Signup successful!');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Signup failed. Please try again.';
-      console.error('[Auth] Signup error:', message);
-      throw new Error(message);
+      toasts?.showError?.(error.userMessage || 'Signup failed. Please try again.');
+      throw error;
     } finally {
       set({ isSigningUp: false });
     }
   },
 
-  login: async (data) => {
+  login: async (data, toasts) => {
     set({ isLoggingIn: true });
     try {
-      console.log('[Auth] Logging in with email:', data.email);
       const res = await axiosInstance.post<AuthResponse>('/auth/login', data);
       set({ authUser: res.data as User });
-      console.log('[Auth] Login successful');
+      await AsyncStorage.setItem('authToken', res.data.token || '');
+      toasts?.showSuccess?.('Login successful!');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed. Please try again.';
-      console.error('[Auth] Login error:', message);
-      throw new Error(message);
+      toasts?.showError?.(error.userMessage || 'Login failed. Please try again.');
+      throw error;
     } finally {
       set({ isLoggingIn: false });
     }
   },
 
-  logout: async () => {
+  logout: async (toasts) => {
     try {
-      console.log('[Auth] Logging out...');
       await axiosInstance.post('/auth/logout');
+    } catch (error: any) {
+      toasts?.showError?.(error.userMessage || 'Logout failed');
+    } finally {
+      await AsyncStorage.removeItem('authToken');
       set({ authUser: null });
-      console.log('[Auth] Logout successful');
-    } catch (error) {
-      console.error('[Auth] Logout error:', error);
-      throw error;
+      toasts?.showSuccess?.('Logged out successfully');
+      router.replace('/(auth)/login');
     }
   },
 
-  updateProfile: async (profilePic: string) => {
+  updateProfile: async (profilePic, toasts) => {
     set({ isUpdatingProfile: true });
     try {
-      console.log('[Auth] Updating profile...');
       const formData = new FormData();
       formData.append('profilePic', {
         uri: profilePic,
@@ -95,17 +96,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       } as any);
 
       const res = await axiosInstance.put<AuthResponse>('/auth/update-profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       set({ authUser: res.data as User });
-      console.log('[Auth] Profile updated successfully');
+      toasts?.showSuccess?.('Profile updated!');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Profile update failed.';
-      console.error('[Auth] Update profile error:', message);
-      throw new Error(message);
+      toasts?.showError?.(error.userMessage || 'Profile update failed');
+      throw error;
     } finally {
       set({ isUpdatingProfile: false });
     }

@@ -5,15 +5,16 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
+
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatStore } from '../../store/useChatStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useNotifications } from '../../lib/notifications';
 import MessageBubble from '../../components/MessageBubble';
 import TypingIndicator from '../../components/TypingIndicator';
@@ -21,8 +22,17 @@ import * as ImagePicker from 'expo-image-picker';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 export default function ChatDetailScreen(): React.ReactElement {
-  const { selectedUser, messages, getMessages, sendMessage, isMessagesLoading, isSendingMessage, typingUsers, onlineUsers } =
-    useChatStore();
+  const navigation = useNavigation<any>();
+  const {
+    selectedUser,
+    messages,
+    getMessages,
+    sendMessage,
+    isMessagesLoading,
+    isSendingMessage,
+    typingUsers,
+    onlineUsers,
+  } = useChatStore();
   const { authUser } = useAuthStore();
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -33,15 +43,13 @@ export default function ChatDetailScreen(): React.ReactElement {
 
   useEffect(() => {
     if (!selectedUser) {
-      router.back();
+      navigation.goBack();
       return;
     }
-
     loadMessages();
   }, [selectedUser]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -51,9 +59,7 @@ export default function ChatDetailScreen(): React.ReactElement {
 
   const loadMessages = async () => {
     try {
-      if (selectedUser) {
-        await getMessages(selectedUser._id);
-      }
+      if (selectedUser) await getMessages(selectedUser._id);
     } catch (error: any) {
       showError(error.message || 'Failed to load messages');
     }
@@ -61,20 +67,17 @@ export default function ChatDetailScreen(): React.ReactElement {
 
   const handleMessageChange = (text: string) => {
     setMessageText(text);
-
     if (text.length > 0 && !isTyping && selectedUser && authUser) {
       setIsTyping(true);
-      // Emit typing event would go here via Socket.IO
+      // Emit typing event via Socket.IO here
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
       if (isTyping) {
         setIsTyping(false);
-        // Emit stopped typing event would go here via Socket.IO
+        // Emit stopped typing event via Socket.IO here
       }
     }, 3000);
   };
@@ -84,12 +87,10 @@ export default function ChatDetailScreen(): React.ReactElement {
       showError('Message cannot be empty');
       return;
     }
-
     if (!selectedUser || !authUser) {
       showError('Unable to send message');
       return;
     }
-
     try {
       await sendMessage(selectedUser._id, messageText, selectedImage || undefined);
       setMessageText('');
@@ -103,19 +104,20 @@ export default function ChatDetailScreen(): React.ReactElement {
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
       });
 
-      if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
-      }
-    } catch (error) {
+      if (!result.canceled) setSelectedImage(result.assets[0].uri);
+    } catch {
       showError('Failed to pick image');
     }
   };
+
+  const isUserOnline = selectedUser ? onlineUsers.has(selectedUser._id) : false;
+  const isUserTyping = selectedUser ? typingUsers.has(selectedUser._id) : false;
 
   if (!selectedUser || !authUser) {
     return (
@@ -124,9 +126,6 @@ export default function ChatDetailScreen(): React.ReactElement {
       </SafeAreaView>
     );
   }
-
-  const isUserOnline = onlineUsers.has(selectedUser._id);
-  const isUserTyping = typingUsers.has(selectedUser._id);
 
   return (
     <KeyboardAvoidingView
@@ -141,12 +140,12 @@ export default function ChatDetailScreen(): React.ReactElement {
             flexDirection: 'row',
             alignItems: 'center',
             paddingHorizontal: 12,
-            paddingVertical: 12,
+            paddingVertical: 10,
             borderBottomWidth: 1,
             borderBottomColor: '#1e293b',
           }}
         >
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
             <FontAwesome name="chevron-left" size={20} color="#06b6d4" />
           </TouchableOpacity>
 
@@ -177,26 +176,22 @@ export default function ChatDetailScreen(): React.ReactElement {
             keyExtractor={(item) => item._id}
             renderItem={({ item }) => {
               const isOwnMessage =
-                item.senderId === authUser._id || 
+                item.senderId === authUser._id ||
                 (typeof item.senderId === 'object' && item.senderId._id === authUser._id);
               return (
                 <MessageBubble
                   message={item}
                   isOwnMessage={isOwnMessage}
                   senderName={typeof item.senderId === 'object' ? item.senderId.fullName : 'Unknown'}
-                  senderAvatar={
-                    typeof item.senderId === 'object' ? item.senderId.profilePic : undefined
-                  }
+                  senderAvatar={typeof item.senderId === 'object' ? item.senderId.profilePic : undefined}
                 />
               );
             }}
-            scrollEnabled={true}
+            scrollEnabled
             onEndReachedThreshold={0.5}
             ListEmptyComponent={
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-                <Text style={{ color: '#94a3b8', fontSize: 14 }}>
-                  No messages yet. Start the conversation!
-                </Text>
+                <Text style={{ color: '#94a3b8', fontSize: 14 }}>No messages yet. Start the conversation!</Text>
               </View>
             }
           />
@@ -207,26 +202,11 @@ export default function ChatDetailScreen(): React.ReactElement {
 
         {/* Image Preview */}
         {selectedImage && (
-          <View
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <Image
-              source={{ uri: selectedImage }}
-              style={{ width: 60, height: 60, borderRadius: 8 }}
-            />
+          <View style={{ paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Image source={{ uri: selectedImage }} style={{ width: 60, height: 60, borderRadius: 8 }} />
             <TouchableOpacity
               onPress={() => setSelectedImage(null)}
-              style={{
-                padding: 8,
-                backgroundColor: '#dc2626',
-                borderRadius: 4,
-              }}
+              style={{ padding: 8, backgroundColor: '#dc2626', borderRadius: 4 }}
             >
               <FontAwesome name="trash" size={16} color="#fff" />
             </TouchableOpacity>
@@ -245,14 +225,7 @@ export default function ChatDetailScreen(): React.ReactElement {
             borderTopColor: '#1e293b',
           }}
         >
-          <TouchableOpacity
-            onPress={handlePickImage}
-            style={{
-              padding: 8,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
+          <TouchableOpacity onPress={handlePickImage} style={{ padding: 8, justifyContent: 'center', alignItems: 'center' }}>
             <FontAwesome name="image" size={20} color="#06b6d4" />
           </TouchableOpacity>
 
@@ -280,12 +253,7 @@ export default function ChatDetailScreen(): React.ReactElement {
           <TouchableOpacity
             onPress={handleSendMessage}
             disabled={isSendingMessage || (!messageText.trim() && !selectedImage)}
-            style={{
-              padding: 10,
-              justifyContent: 'center',
-              alignItems: 'center',
-              opacity: isSendingMessage || (!messageText.trim() && !selectedImage) ? 0.5 : 1,
-            }}
+            style={{ padding: 10, justifyContent: 'center', alignItems: 'center', opacity: isSendingMessage || (!messageText.trim() && !selectedImage) ? 0.5 : 1 }}
           >
             {isSendingMessage ? (
               <ActivityIndicator size="small" color="#06b6d4" />

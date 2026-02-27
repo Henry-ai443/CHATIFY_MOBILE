@@ -5,24 +5,31 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useChatStore } from '../../store/useChatStore';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useNavigation } from '@react-navigation/native';
 import ChatItem from '../../components/ChatItem';
-import { router } from 'expo-router';
 import { useNotifications } from '../../lib/notifications';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 export default function ChatHomeScreen(): React.ReactElement {
-  const { chats, allContacts, getMyChatPartners, getAllContacts, setSelectedUser, onlineUsers, isUsersLoading } =
-    useChatStore();
+  const navigation = useNavigation<any>();
+  const {
+    chats,
+    allContacts,
+    getMyChatPartners,
+    getAllContacts,
+    setSelectedUser,
+    onlineUsers,
+    isUsersLoading,
+  } = useChatStore();
   const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
   const { showError } = useNotifications();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -36,13 +43,9 @@ export default function ChatHomeScreen(): React.ReactElement {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
-    router.push(`/(chat)/[chatId]` as any);
+    navigation.navigate('chatDetail');
   };
 
   const data = activeTab === 'chats' ? chats : allContacts;
@@ -50,9 +53,16 @@ export default function ChatHomeScreen(): React.ReactElement {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#1e293b',
+        }}
+      >
         <Text style={{ fontSize: 24, fontWeight: '700', color: '#e2e8f0' }}>
-          Chats
+          {activeTab === 'chats' ? 'Chats' : 'Contacts'}
         </Text>
       </View>
 
@@ -62,58 +72,36 @@ export default function ChatHomeScreen(): React.ReactElement {
           flexDirection: 'row',
           gap: 8,
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingVertical: 10,
           borderBottomWidth: 1,
           borderBottomColor: '#1e293b',
         }}
       >
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            paddingVertical: 10,
-            paddingHorizontal: 12,
-            borderRadius: 6,
-            backgroundColor: activeTab === 'chats' ? '#06b6d4' : 'transparent',
-            borderWidth: activeTab === 'chats' ? 0 : 1,
-            borderColor: '#334155',
-            alignItems: 'center',
-          }}
-          onPress={() => setActiveTab('chats')}
-        >
-          <Text
+        {['chats', 'contacts'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
             style={{
-              color: activeTab === 'chats' ? '#000' : '#e2e8f0',
-              fontWeight: '600',
-              fontSize: 13,
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 6,
+              backgroundColor: activeTab === tab ? '#06b6d4' : 'transparent',
+              borderWidth: activeTab === tab ? 0 : 1,
+              borderColor: '#334155',
+              alignItems: 'center',
             }}
+            onPress={() => setActiveTab(tab as 'chats' | 'contacts')}
           >
-            My Chats
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            paddingVertical: 10,
-            paddingHorizontal: 12,
-            borderRadius: 6,
-            backgroundColor: activeTab === 'contacts' ? '#06b6d4' : 'transparent',
-            borderWidth: activeTab === 'contacts' ? 0 : 1,
-            borderColor: '#334155',
-            alignItems: 'center',
-          }}
-          onPress={() => setActiveTab('contacts')}
-        >
-          <Text
-            style={{
-              color: activeTab === 'contacts' ? '#000' : '#e2e8f0',
-              fontWeight: '600',
-              fontSize: 13,
-            }}
-          >
-            Contacts
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={{
+                color: activeTab === tab ? '#000' : '#e2e8f0',
+                fontWeight: '600',
+                fontSize: 13,
+              }}
+            >
+              {tab === 'chats' ? 'My Chats' : 'Contacts'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Chat List */}
@@ -147,7 +135,6 @@ export default function ChatHomeScreen(): React.ReactElement {
               onPress={handleSelectUser}
             />
           )}
-          scrollEnabled={true}
           contentContainerStyle={{ paddingBottom: 16 }}
         />
       )}

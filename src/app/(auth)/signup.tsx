@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotifications } from '../../lib/notifications';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -20,6 +21,7 @@ export default function SignupScreen(): React.ReactElement {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const { signup, isSigningUp } = useAuthStore();
   const { showError, showSuccess } = useNotifications();
 
@@ -49,15 +51,17 @@ export default function SignupScreen(): React.ReactElement {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        style={{ backgroundColor: '#0f172a' }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 20 }}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: '#0f172a' }}
+        >
           {/* Header */}
           <View style={{ alignItems: 'center', marginBottom: 40 }}>
             <FontAwesome name="comments" size={50} color="#06b6d4" />
@@ -256,8 +260,8 @@ export default function SignupScreen(): React.ReactElement {
               </TouchableOpacity>
             </Link>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
